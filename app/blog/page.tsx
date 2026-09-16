@@ -1,82 +1,121 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import JsonLd from "@/components/JsonLd";
-import { breadcrumbSchema } from "@/lib/schema";
+import { articleSchema, faqSchema, breadcrumbSchema } from "@/lib/schema";
 import { siteConfig } from "@/lib/site-config";
-import { blogPosts } from "@/data/blog-posts";
+import { blogPosts, getPostBySlug } from "@/data/blog-posts";
 
-export const metadata: Metadata = {
-  title: "Blog — Walking Tips, Step Guides & Weight Loss Science",
-  description:
-    "Guides on walking for weight loss: step-count targets, walking vs running, beginner plans, gear reviews, and the science behind building a habit that sticks.",
-  alternates: { canonical: "/blog" },
-};
+export function generateStaticParams() {
+  return blogPosts.map((post) => ({ slug: post.slug }));
+}
 
-const POSTS_PER_PAGE = 10;
+export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
+  const post = getPostBySlug(params.slug);
+  if (!post) return {};
+  return {
+    title: post.metaTitle,
+    description: post.metaDescription,
+    alternates: { canonical: `/blog/${post.slug}` },
+    openGraph: {
+      title: post.metaTitle,
+      description: post.metaDescription,
+      type: "article",
+      publishedTime: post.datePublished,
+      modifiedTime: post.dateModified,
+    },
+  };
+}
 
-export default function BlogIndexPage() {
-  const page1 = blogPosts.slice(0, POSTS_PER_PAGE);
-  const totalPages = Math.max(1, Math.ceil(blogPosts.length / POSTS_PER_PAGE));
+export default function BlogPostPage({ params }: { params: { slug: string } }) {
+  const post = getPostBySlug(params.slug);
+  if (!post) notFound();
+
+  const related = blogPosts.filter((p) => p.slug !== post.slug).slice(0, 2);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-14">
       <JsonLd
-        data={breadcrumbSchema([
-          { name: "Home", url: siteConfig.url },
-          { name: "Blog", url: `${siteConfig.url}/blog` },
-        ])}
+        data={[
+          articleSchema({
+            title: post.title,
+            description: post.metaDescription,
+            slug: post.slug,
+            datePublished: post.datePublished,
+            dateModified: post.dateModified,
+          }),
+          faqSchema(post.faq),
+          breadcrumbSchema([
+            { name: "Home", url: siteConfig.url },
+            { name: "Blog", url: `${siteConfig.url}/blog` },
+            { name: post.title, url: `${siteConfig.url}/blog/${post.slug}` },
+          ]),
+        ]}
       />
 
-      <p className="font-display text-xs uppercase tracking-wide text-sunrise-600">Blog</p>
-      <h1 className="font-display text-4xl text-trail-800 mt-2">
-        Walking tips, step-count guides & weight-loss science
-      </h1>
-      <p className="text-inkmuted mt-4 max-w-prose">
-        Everything here is written to be actually useful on your next walk: how many steps you
-        really need, walking versus running, beginner-friendly plans, gear worth buying, and the
-        habit-building research behind why some routines stick and others don&apos;t. New guides
-        are added regularly — check back often, or jump straight into the{" "}
-        <Link href="/#calculator" className="text-trail-600 underline underline-offset-2">
-          walking weight loss calculator
-        </Link>{" "}
-        if you just want your numbers.
-      </p>
+      <nav aria-label="Breadcrumb" className="text-sm text-inkmuted mb-6">
+        <Link href="/" className="hover:text-trail-700">Home</Link>
+        <span className="mx-2">/</span>
+        <Link href="/blog" className="hover:text-trail-700">Blog</Link>
+      </nav>
 
-      <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {page1.map((post) => (
-          <Link
-            key={post.slug}
-            href={`/blog/${post.slug}`}
-            className="group rounded-2xl border border-trail-100 bg-surface p-6 hover:border-trail-300 transition-colors flex flex-col"
-          >
-            <p className="text-xs text-sunrise-600 font-medium">
-              {new Date(post.datePublished).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}{" "}
-              · {post.readingMinutes} min read
-            </p>
-            <h2 className="font-display text-lg text-trail-800 mt-2 group-hover:text-trail-600 transition-colors">
-              {post.title}
-            </h2>
-            <p className="text-sm text-inkmuted mt-2 flex-1">{post.excerpt}</p>
-            <span className="text-sm text-trail-600 mt-4 font-medium">Read article →</span>
-          </Link>
-        ))}
+      <p className="text-xs text-sunrise-600 font-medium">
+        {new Date(post.datePublished).toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        })}{" "}
+        · {post.readingMinutes} min read
+      </p>
+      <h1 className="font-display text-3xl sm:text-4xl text-trail-800 mt-3">{post.title}</h1>
+
+      <div
+        className="prose-article mt-8"
+        dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
+      />
+
+      <section className="mt-12">
+        <h2 className="font-display text-2xl text-trail-700 mb-4">Frequently asked questions</h2>
+        <div className="space-y-5">
+          {post.faq.map((item) => (
+            <div key={item.question}>
+              <h3 className="font-display text-lg text-trail-700 mb-1">{item.question}</h3>
+              <p className="text-inkmuted leading-relaxed">{item.answer}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="mt-12 rounded-2xl bg-trail-600 text-white p-6">
+        <p className="font-display text-lg">See what this means for your own numbers</p>
+        <p className="text-trail-50 text-sm mt-1">
+          Plug your age, weight, and pace into the walking weight loss calculator for a
+          personalized calorie and weight-loss estimate.
+        </p>
+        <Link
+          href="/#calculator"
+          className="inline-flex items-center mt-4 rounded-full bg-sunrise-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-sunrise-600 transition-colors"
+        >
+          Open the calculator
+        </Link>
       </div>
 
-      {totalPages > 1 && (
-        <nav aria-label="Blog pagination" className="mt-10 flex gap-2">
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <span
-              key={i}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-trail-200 text-sm text-inkmuted"
-            >
-              {i + 1}
-            </span>
-          ))}
-        </nav>
+      {related.length > 0 && (
+        <section className="mt-12">
+          <h2 className="font-display text-xl text-trail-700 mb-4">Keep reading</h2>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {related.map((r) => (
+              <Link
+                key={r.slug}
+                href={`/blog/${r.slug}`}
+                className="rounded-xl border border-trail-100 p-4 hover:border-trail-300 transition-colors"
+              >
+                <p className="font-display text-sm text-trail-700">{r.title}</p>
+                <p className="text-xs text-inkmuted mt-1">{r.excerpt}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );
