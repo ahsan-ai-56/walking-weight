@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-feature-settings: "cv11", "ss01";
+}
+
+.prose-article h2 {
+  @apply font-display text-2xl sm:text-3xl text-trail-700 mt-12 mb-4;
+}
+
+.prose-article h3 {
+  @apply font-display text-xl text-trail-700 mt-8 mb-3;
+}
+
+.prose-article p {
+  @apply text-inkmuted leading-relaxed mb-4 max-w-prose;
+}
+
+.prose-article ul {
+  @apply list-disc pl-6 mb-4 text-inkmuted space-y-1;
+}
+
+.prose-article ol {
+  @apply list-decimal pl-6 mb-4 text-inkmuted space-y-1;
+}
+
+.prose-article table {
+  @apply w-full text-sm border-collapse my-4;
+}
+
+.prose-article th {
+  @apply text-left bg-trail-50 text-trail-800 font-medium px-3 py-2 border border-trail-100;
+}
+
+.prose-article td {
+  @apply px-3 py-2 border border-trail-100 text-inkmuted;
+}
+
+.prose-article a {
+  @apply text-trail-600 underline underline-offset-2 hover:text-trail-700;
+}
+
+.prose-article strong {
+  @apply text-ink font-semibold;
+}
+
+:focus-visible {
+  outline: 2px solid #e8871e;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
